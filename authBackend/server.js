@@ -1,0 +1,46 @@
+
+require("dotenv").config();
+
+const express = require("express");
+const cors = require("cors");
+const connectDB = require("./config/db");
+const authRoutes = require("./routes/authRoutes");
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+  })
+);
+
+// Parse incoming JSON requests
+app.use(express.json());
+
+// Backend health check
+app.get("/", (req, res) => {
+  res.json({
+    success: true,
+    message: "Backend is running",
+  });
+});
+
+// Authentication routes
+app.use("/api/auth", authRoutes);
+
+// Connect to MongoDB before starting the server
+const startServer = async () => {
+  try {
+    await connectDB();
+
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error("Failed to start server:", error.message);
+    process.exit(1);
+  }
+};
+
+startServer();
