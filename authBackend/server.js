@@ -11,42 +11,9 @@ const taskRoutes = require("./routes/taskRoutes");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Normalize and prepare allowed origins
-const rawOrigins = [
-  "http://localhost:3000",
-  "https://authentication-frontend-orcin.vercel.app",
-  process.env.FRONTEND_URL,
-  process.env.CLIENT_URL,
-];
-
-const allowedOrigins = rawOrigins
-  .filter(Boolean)
-  .flatMap((url) => url.split(","))
-  .map((url) => url.trim().replace(/\/+$/, ""));
-
+// Allow all origins dynamically with credentials support
 const corsOptions = {
-  origin: (origin, callback) => {
-    // Allow non-browser requests (e.g. mobile apps, curl, Postman, server-side fetch)
-    if (!origin) {
-      return callback(null, true);
-    }
-
-    const cleanOrigin = origin.trim().replace(/\/+$/, "");
-
-    // Allow explicitly configured origins, any Vercel deployment/preview (*.vercel.app), or localhost
-    const isAllowed =
-      allowedOrigins.includes(cleanOrigin) ||
-      /\.vercel\.app$/.test(cleanOrigin) ||
-      /^https?:\/\/localhost(:\d+)?$/.test(cleanOrigin) ||
-      /^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(cleanOrigin);
-
-    if (isAllowed) {
-      return callback(null, true);
-    }
-
-    console.warn(`[CORS] Blocked request from unauthorized origin: ${origin}`);
-    return callback(null, false);
-  },
+  origin: true,
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: [
@@ -61,17 +28,21 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// Explicit preflight handler for all routes in Express 5
-app.options(/(.*)/, cors(corsOptions));
-
 // Parse incoming JSON requests
 app.use(express.json());
 
-// Backend health check
+// Backend health checks for Railway / monitoring
 app.get("/", (req, res) => {
   res.json({
     success: true,
     message: "Backend is running",
+  });
+});
+
+app.get("/health", (req, res) => {
+  res.json({
+    success: true,
+    status: "healthy",
   });
 });
 
@@ -90,23 +61,13 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Connect to MongoDB before starting the server
-const startServer = async () => {
-  try {
-    await connectDB();
-
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-      console.log("Allowed frontend origins:", allowedOrigins);
-    });
-  } catch (error) {
-    console.error("Failed to start server:", error.message);
-    process.exit(1);
-  }
-};
-
-if (require.main === module) {
-  startServer();
-}
+// Start listening on 0.0.0.0 immediately so Railway health checks pass instantly
+const server = app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on 0.0.0.0:${PORT}`);
+  // Connect to MongoDB asynchronously without blocking server readiness
+  connectDB().catch((err) => {
+    console.error("MongoDB initial connection error:", err.message);
+  });
+});
 
 module.exports = app;
