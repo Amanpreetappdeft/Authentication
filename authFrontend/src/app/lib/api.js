@@ -1,9 +1,11 @@
 
-export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+export const API_URL = (
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+).replace(/\/+$/, "");
 
 export async function apiRequest(endpoint, options = {}) {
-  const response = await fetch(`${API_URL}${endpoint}`, {
+  const normalizedEndpoint = `/${endpoint.replace(/^\/+/, "")}`;
+  const response = await fetch(`${API_URL}${normalizedEndpoint}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
