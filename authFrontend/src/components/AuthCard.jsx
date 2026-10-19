@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { API_URL } from "@/app/lib/api";
 import SocialButtons from "./SocialButtons";
+import { loginSchema } from "@/validators/authSchema";  
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles, Check, Loader2, AlertCircle } from "lucide-react";
 
 export default function AuthCard() {
@@ -17,57 +18,73 @@ export default function AuthCard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedSuccess, setSubmittedSuccess] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setSubmittedSuccess(false);
-    setErrorMessage("");
+ 
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setErrorMessage("");
 
-    try {
-      const response = await fetch(`${API_URL}/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: email.trim(),
-          password,
-        }),
-      });
+  const validationResult = loginSchema.safeParse({
+    email,
+    password,
+  });
 
-      const result = await response.json();
+  if (!validationResult.success) {
+    setErrorMessage(validationResult.error.issues[0].message);
+    return;
+  }
 
-      if (!response.ok || result.success === false) {
-        throw new Error(result.message || "Invalid email or password");
-      }
+  setIsSubmitting(true);
+  setSubmittedSuccess(false);
 
-      if (result.data?.token) {
-        localStorage.setItem("nexus_token", result.data.token);
-      }
-
-      const userData = result.data?.user || {
+  try {
+    const response = await fetch(`${API_URL}/auth/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
         email: email.trim(),
-        name: email.split("@")[0],
-      };
+        password,
+      }),
+    });
 
-      localStorage.setItem(
-        "nexus_user",
-        JSON.stringify({
-          ...userData,
-          lastLogin: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        })
-      );
+    const result = await response.json();
 
-      setSubmittedSuccess(true);
-      setTimeout(() => {
-        router.push("/welcome");
-      }, 700);
-    } catch (err) {
-      setErrorMessage(err.message || "Failed to log in. Please try again.");
-    } finally {
-      setIsSubmitting(false);
+    if (!response.ok || result.success === false) {
+      throw new Error(result.message || "Invalid email or password");
     }
-  };
+
+    if (result.data?.token) {
+      localStorage.setItem("nexus_token", result.data.token);
+    }
+
+    const userData = result.data?.user || {
+      email: email.trim(),
+      name: email.split("@")[0],
+    };
+
+    localStorage.setItem(
+      "nexus_user",
+      JSON.stringify({
+        ...userData,
+        lastLogin: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      })
+    );
+
+    setSubmittedSuccess(true);
+
+    setTimeout(() => {
+      router.push("/welcome");
+    }, 700);
+  } catch (err) {
+    setErrorMessage(err.message || "Failed to log in. Please try again.");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   return (
     <div className="w-full max-w-md mx-auto">

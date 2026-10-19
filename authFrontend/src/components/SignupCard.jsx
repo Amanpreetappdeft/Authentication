@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { API_URL } from "@/app/lib/api";
 import SocialButtons from "./SocialButtons";
+import { signupSchema } from "@/validators/authSchema";
 import { User, Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles, Check, Loader2, AlertCircle } from "lucide-react";
 
 export default function SignupCard() {
@@ -24,23 +25,18 @@ export default function SignupCard() {
   e.preventDefault();
   setErrorMessage("");
 
-  if (password.length < 8) {
-    setErrorMessage("Password must be at least 8 characters long.");
+  const validationResult = signupSchema.safeParse({
+    name,
+    email,
+    password,
+    confirmPassword,
+    agreeTerms,
+  });
+
+  if (!validationResult.success) {
+    setErrorMessage(validationResult.error.issues[0].message);
     return;
   }
-
-  if (password !== confirmPassword) {
-    setErrorMessage("Passwords do not match. Please verify and try again.");
-    return;
-  }
-
-  if (!agreeTerms) {
-    setErrorMessage(
-      "Please accept the Terms of Service and Privacy Policy to continue."
-    );
-    return;
-  }
-
   setIsSubmitting(true);
   setSubmittedSuccess(false);
 
