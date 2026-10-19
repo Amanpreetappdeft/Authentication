@@ -1,7 +1,11 @@
 
-export const API_URL = (
+const rawApiUrl = (
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
-).replace(/\/+$/, "");
+).trim().replace(/\/+$/, "");
+
+export const API_URL = rawApiUrl.endsWith("/api")
+  ? rawApiUrl
+  : `${rawApiUrl}/api`;
 
 export async function apiRequest(endpoint, options = {}) {
   const normalizedEndpoint = `/${endpoint.replace(/^\/+/, "")}`;
