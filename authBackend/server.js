@@ -36,18 +36,27 @@ app.use("/api/auth", authRoutes);
 app.use("/api/tasks", taskRoutes);
 
 // Connect to MongoDB before starting the server
+
 const startServer = async () => {
   try {
     await connectDB();
 
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
+      console.log("Allowed frontend origins:", [
+        "http://localhost:3000",
+        process.env.FRONTEND_URL,
+      ].filter(Boolean));
     });
   } catch (error) {
     console.error("Failed to start server:", error.message);
     process.exit(1);
   }
 };
+
+if (require.main === module) {
+  startServer();
+}
 
 module.exports = app;
 if (require.main === module) {
