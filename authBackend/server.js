@@ -26,6 +26,8 @@ const corsOptions = {
   optionsSuccessStatus: 200,
 };
 
+console.log("CORS CONFIG LOADED:", corsOptions);
+
 app.use(cors(corsOptions));
 
 // Parse incoming JSON requests
